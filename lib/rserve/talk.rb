@@ -6,10 +6,18 @@ module Rserve
   #
   class Talk
     include Rserve::Protocol
+
     attr_reader :io
-    def initialize(io)
-      @io=io
+    attr_reader :timeout
+
+    # :section: Errors
+    SocketTimeoutError = Class.new(StandardError)
+
+    def initialize(io, timeout)
+      @io = io
+      @timeout = timeout
     end
+
     # sends a request with attached prefix and  parameters.
     # All parameters should be enter on Hash
     # Both :prefix and :cont can be <code>nil</code>. Effectively <code>request(:cmd=>a,:prefix=>b,:cont=>nil)</code> and <code>request(:cmd=>a,:prefix=>nil,:cont=>b)</code> are equivalent.
@@ -69,7 +77,16 @@ module Rserve
         end
       end
       puts "Expecting 16 bytes..." if $DEBUG
-      ih=io.recv(16).unpack("C*")
+
+      # ih=io.recv(16).unpack("C*") OLD
+
+      rs, = IO.select([io], [], [], timeout)
+
+      if rs
+        ih = rs[0].read(16).unpack("C*")
+      else
+        raise SocketTimeoutError
+      end
 
       return nil if (ih.length!=16)
 
@@ -88,7 +105,16 @@ module Rserve
         ct=Array.new();
         n=0;
         while (n<rl) do
-          data=io.recv(rl-n).unpack("C*")
+          # data=io.recv(rl-n).unpack("C*") OLD
+
+          rs, = IO.select([io], [], [], timeout)
+
+          if rs
+            data = rs[0].read(rl-n).unpack("C*")
+          else
+            raise SocketTimeoutError
+          end
+
           ct+=data
           rd=data.length
           n+=rd;

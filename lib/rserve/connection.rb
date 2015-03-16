@@ -11,6 +11,7 @@ module Rserve
     IncorrectServerVersionError=Class.new(StandardError)
     IncorrectProtocolError=Class.new(StandardError)
     NotConnectedError=Class.new(StandardError)
+
     # Eval error
     class EvalError < RuntimeError
       attr_accessor :request_packet
@@ -18,6 +19,7 @@ module Rserve
         @request_packet=rp
       end
     end
+
     attr_reader :hostname
     attr_reader :port_number
     attr_reader :protocol
@@ -30,6 +32,7 @@ module Rserve
     attr_reader :s
     attr_reader :port
     attr_reader :session
+    attr_reader :timeout
     attr_writer :transfer_charset
     attr_reader :rsrv_version
     attr_writer :persistent
@@ -57,6 +60,7 @@ module Rserve
       @cmd_init         = opts.delete(:cmd_init)          || "R CMD Rserve"
       @proc_rserve_ok   = opts.delete(:proc_rserve_ok)    || lambda { system "killall -s 0 Rserve" } 
       @session          = opts.delete(:session)           || nil
+      @timeout          = opts.delete(:timeout)           || 60
       @tries            = 0
       @connected=false
       if (!@session.nil?)
@@ -100,9 +104,12 @@ module Rserve
       end
 
       close if @connected
-      
-      @s = TCPSocket::new(@hostname, @port_number)
-      @rt=Rserve::Talk.new(@s)
+
+      # here we create a new socket, following https://moret1979.wordpress.com/2014/09/03/socket-read-timeout/
+      @s = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+      @s.connect(Socket.pack_sockaddr_in(@port_number, @hostname))
+
+      @rt = Rserve::Talk.new(@s, @timeout)
       if @session.nil?
         #puts "Connected"
         # Accept first input
