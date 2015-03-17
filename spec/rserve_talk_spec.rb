@@ -2,8 +2,13 @@ require File.expand_path(File.dirname(__FILE__)+"/spec_helper.rb")
 
 describe Rserve::Talk do
   before do
-    @iomock=double('IO Mock')
-    @talk=Rserve::Talk.new(@iomock)
+    # @iomock = double('IO Mock')
+    # @iomock = IO.new
+    @socket = double('socket').as_null_object
+    Socket.stub(:new).and_return(@socket)
+    Socket.stub(:new).and_return(@socket)
+    IO.stub(:select).and_return(@socket)
+    @talk = Rserve::Talk.new(@socket, 60)
   end
   it "method request_string should return a valid string" do
     par="x<-12".unpack("C*")
