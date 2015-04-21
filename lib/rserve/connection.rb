@@ -60,7 +60,7 @@ module Rserve
       @cmd_init         = opts.delete(:cmd_init)          || "R CMD Rserve"
       @proc_rserve_ok   = opts.delete(:proc_rserve_ok)    || lambda { system "killall -s 0 Rserve" } 
       @session          = opts.delete(:session)           || nil
-      @timeout          = opts.delete(:timeout)           || 60
+      @timeout          = opts.delete(:timeout)           || 200
       @tries            = 0
       @connected=false
       if (!@session.nil?)
